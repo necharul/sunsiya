@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOC if(CFG.auto_profit_sync) pushProfitCloud();TYPE html>
 <html lang="bn">
 <head>
 <meta charset="UTF-8">
@@ -155,6 +155,23 @@ input[type=checkbox]{width:auto;accent-color:var(--accent);}
 .color-swatches{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .csw{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border .15s;}
 .csw.selected{border-color:#fff;}
+.profit-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:150;display:none;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+.profit-overlay.open{display:flex;}
+.profit-modal{background:var(--bg2);border:1px solid var(--border);border-radius:18px;width:920px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column;}
+.profit-head{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.profit-head h2{font-size:16px;font-weight:600;}
+.ptabs{display:flex;padding:0 24px;border-bottom:1px solid var(--border);}
+.ptab{padding:11px 22px;cursor:pointer;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;background:none;border-left:none;border-right:none;border-top:none;font-family:var(--fn);transition:all .2s;}
+.ptab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.profit-body{padding:20px 24px;overflow-y:auto;flex:1;}
+.ptbl{width:100%;border-collapse:collapse;min-width:650px;}
+.ptbl th{background:var(--bg3);padding:10px 12px;font-size:11px;color:var(--muted);text-align:left;font-weight:500;white-space:nowrap;border-bottom:1px solid var(--border);}
+.ptbl td{padding:10px 12px;font-size:12px;border-bottom:1px solid rgba(42,47,69,.4);vertical-align:middle;}
+.ptbl-total td{font-weight:700;background:rgba(245,200,66,.08);border-top:2px solid var(--border);}
+.ptbl-mhead td{font-weight:700;color:var(--blue);background:rgba(59,130,246,.06);border-left:3px solid var(--blue);}
+.ptbl-msub td{font-weight:700;color:var(--green);background:rgba(34,197,94,.05);}
+.fc-click{cursor:pointer;}
+.fc-click:hover{border-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -295,6 +312,7 @@ var DEF_SETTINGS = {
   def_courier: 'Steadfast',
   script_url: 'https://script.google.com/macros/s/AKfycbzneNPlbRVCVO0Tubn4a7sfq9POWVDQeQW_TsxlYFwYCU4RKaZ8z15wYgjQOUHj9JVH/exec',
   auto_sync: true,
+  auto_profit_sync: true,
   accent: '#f5c842'
 };
 
@@ -385,6 +403,7 @@ function renderSettings(){
   html += '<div class="stg-gtitle">\u2601\uFE0F Google Sheets \u09B8\u0982\u09AF\u09CB\u0997</div>';
   html += stgRow('Script URL','Google Apps Script Web App URL','<input class="stg-input" id="cfg_surl" value="'+escHtml(CFG.script_url)+'" style="width:280px">');
   html += stgRow('Auto Sync','\u09AA\u09CD\u09B0\u09A4\u09BF save-\u098F auto sync','<div class="toggle'+(CFG.auto_sync?' on':'')+'" onclick="togCfg(this,\'auto_sync\')"></div>');
+  html += stgRow('Auto Profit Sync','Profit Sheet \u09B8\u09CD\u09AC\u09AF\u09BC\u0982\u0995\u09CD\u09B0\u09BF\u09AF\u09BC \u0986\u09AA\u09A1\u09C7\u099F','<div class="toggle' + (CFG.auto_profit_sync ? ' on' : '') + '" onclick="togCfg(this,\'auto_profit_sync\')"></div>');
   html += '</div>';
 
   html += '<div class="stg-group">';
@@ -509,7 +528,7 @@ async function pushCloud(){
     var res=await fetch(SURL2,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'save',orders:rows})});
     if(!res.ok) throw new Error('HTTP '+res.status);
     var json=JSON.parse(await res.text());
-    if(json.status==='ok'){ setSS('ok','\u2705 Synced'); toast('\u2601\uFE0F Google Sheets \u09B8\u0982\u09B0\u0995\u09CD\u09B7\u09BF\u09A4','s'); }
+    if(json.status==='ok'){ setSS('ok','\u2705 Synced'); toast('\u2601\uFE0F Google Sheets \u09B8\u0982\u09B0\u0995\u09CD\u09B7\u09BF\u09A4','s'); if(CFG.auto_profit_sync) pushProfitCloud(); }
     else throw new Error(json.msg||'err');
   }catch(e){ setSS('err','\u274C Sync \u09AC\u09CD\u09AF\u09B0\u09CD\u09A5'); toast('Sync \u09AC\u09CD\u09AF\u09B0\u09CD\u09A5: '+e.message.substring(0,25),'e'); }
 }
@@ -591,7 +610,7 @@ function rDash(){
     '<div class="fc"><div class="flt">\uD83D\uDCB0 \u09AE\u09CB\u099F \u09AC\u09BF\u0995\u09CD\u09B0\u09AF\u09BC</div><div class="fv cy">'+fmt(tr2)+'</div></div>'+
     '<div class="fc"><div class="flt">\uD83D\uDCC8 Gross Profit</div><div class="fv cb">'+fmt(tg)+'</div></div>'+
     '<div class="fc"><div class="flt">\uD83C\uDF81 \u09AB\u09CD\u09B0\u09BF \u09A1\u09C7\u09B2. \u0996\u09B0\u099A</div><div class="fv co">-'+fmt(tfc)+'</div></div>'+
-    '<div class="fc"><div class="flt">\u2728 Net \u09B2\u09BE\u09AD</div><div class="fv cg">'+fmt(tn)+'</div></div>'+
+    '<div class="fc fc-click" onclick="showProfitModal()"><div class="flt">\u2728 Net \u09B2\u09BE\u09AD</div><div class="fv cg">'+fmt(tn)+'</div></div>'+
     '<div class="fc"><div class="flt">\uD83D\uDE9A Courier \u0996\u09B0\u099A</div><div class="fv cr">-'+fmt(tcc)+'</div></div>'+
     '<div class="fc"><div class="flt">\u274C Cancelled</div><div class="fv cr">'+canc+'</div></div>';
   var cl=['Steadfast','Pathao','RedX','Sundarban','\u0985\u09A8\u09CD\u09AF\u09BE\u09A8\u09CD\u09AF'];
@@ -825,6 +844,182 @@ var fp2=document.getElementById('f_product'); if(fp2) fp2.innerHTML=prodOpts('')
 var fc2=document.getElementById('f_courier'); if(fc2) fc2.innerHTML='<option value="">-</option>'+courierOpts(CFG.def_courier);
 pullCloud();
 
+
+var curPTab = 'total';
+
+function buildProfitData() {
+  var del = orders.filter(function(o) { return o.status === 'Delivered'; });
+  var tRows = del.slice().sort(function(a, b) { return a.id - b.id; }).map(function(o, i) {
+    var ndc = Number(o.courier_actual || 0) - Number(o.delcharge || 0);
+    return [i + 1, o.name, o.phone, o.tracking || '', o.product + ' x' + o.qty, tsale(o), ndc, net(o), o.date];
+  });
+  var mm = {};
+  del.forEach(function(o) {
+    var d = new Date(o.date);
+    var k = isNaN(d.getTime()) ? 'Unknown' : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    if (!mm[k]) mm[k] = [];
+    mm[k].push(o);
+  });
+  var mRows = [];
+  Object.keys(mm).sort().forEach(function(m) {
+    var d = new Date(m + '-01');
+    var mn = isNaN(d.getTime()) ? m : d.toLocaleString('default', { month: 'long', year: 'numeric' });
+    mm[m].forEach(function(o, i) {
+      var ndc = Number(o.courier_actual || 0) - Number(o.delcharge || 0);
+      mRows.push([mn, i + 1, o.name, o.phone, o.tracking || '', o.product + ' x' + o.qty, tsale(o), ndc, net(o)]);
+    });
+    mRows.push([mn + ' মোট', '', '', '', '', '',
+      mm[m].reduce(function(s, o) { return s + tsale(o); }, 0),
+      mm[m].reduce(function(s, o) { return s + Number(o.courier_actual || 0) - Number(o.delcharge || 0); }, 0),
+      mm[m].reduce(function(s, o) { return s + net(o); }, 0)
+    ]);
+  });
+  return { totalRows: tRows, monthRows: mRows };
+}
+
+function showProfitModal() {
+  document.getElementById('profitOverlay').classList.add('open');
+  renderPTab(curPTab);
+}
+
+function switchPTab(tab) {
+  curPTab = tab;
+  document.querySelectorAll('.ptab').forEach(function(t) { t.classList.remove('active'); });
+  var el = document.getElementById('ptab-' + tab);
+  if (el) el.classList.add('active');
+  renderPTab(tab);
+}
+
+function renderPTab(tab) {
+  if (tab === 'total') renderTotalP();
+  else renderMonthP();
+}
+
+function fmtp(n) { return '৳' + Number(n || 0).toLocaleString('en-IN'); }
+
+function renderTotalP() {
+  var del = orders.filter(function(o) { return o.status === 'Delivered'; }).slice().sort(function(a, b) { return a.id - b.id; });
+  var tN = 0, tS = 0, tC = 0;
+  var rows = del.map(function(o, i) {
+    var n = net(o);
+    var ndc = Number(o.courier_actual || 0) - Number(o.delcharge || 0);
+    tN += n; tS += tsale(o); tC += ndc;
+    return '<tr>' +
+      '<td style="color:var(--muted)">' + (i + 1) + '</td>' +
+      '<td style="font-weight:600">' + o.name + '</td>' +
+      '<td style="color:var(--muted)">' + o.phone + '</td>' +
+      '<td style="font-size:11px">' + (o.tracking || '-') + '</td>' +
+      '<td>' + o.product + ' x' + o.qty + '</td>' +
+      '<td style="color:var(--accent)">' + fmtp(tsale(o)) + '</td>' +
+      '<td style="color:' + (ndc > 0 ? 'var(--red)' : 'var(--green)') + '">' + fmtp(ndc) + '</td>' +
+      '<td style="font-weight:700;color:' + (n >= 0 ? 'var(--green)' : 'var(--red)') + '">' + fmtp(n) + '</td>' +
+      '</tr>';
+  }).join('');
+  var tot = '<tr class="ptbl-total">' +
+    '<td colspan="5" style="text-align:right">মোট (' + del.length + 'টি)</td>' +
+    '<td>' + fmtp(tS) + '</td><td>' + fmtp(tC) + '</td>' +
+    '<td style="font-size:15px;color:var(--accent)">' + fmtp(tN) + '</td></tr>';
+  document.getElementById('profitContent').innerHTML =
+    '<div style="overflow-x:auto"><table class="ptbl"><thead><tr>' +
+    '<th>SL</th><th>গ্রাহক</th><th>মোবাইল</th>' +
+    '<th>Tracking</th><th>পণ্য</th><th>বিক্রয়</th>' +
+    '<th>Courier নেট চার্জ</th><th>Net Profit</th>' +
+    '</tr></thead><tbody>' +
+    (rows || '<tr><td colspan="8" class="empty">Delivered অর্ডার ন৅ই</td></tr>') +
+    tot + '</tbody></table></div>';
+}
+
+function renderMonthP() {
+  var del = orders.filter(function(o) { return o.status === 'Delivered'; });
+  var mm = {};
+  del.forEach(function(o) {
+    var d = new Date(o.date);
+    var k = isNaN(d.getTime()) ? 'Unknown' : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    if (!mm[k]) mm[k] = [];
+    mm[k].push(o);
+  });
+  var months = Object.keys(mm).sort();
+  if (!months.length) {
+    document.getElementById('profitContent').innerHTML = '<div class="empty">Delivered অর্ডার ন৅ই</div>';
+    return;
+  }
+  var html = '<div style="overflow-x:auto"><table class="ptbl"><thead><tr>' +
+    '<th>SL</th><th>গ্রাহক</th><th>মোবাইল</th>' +
+    '<th>Tracking</th><th>পণ্য</th><th>বিক্রয়</th>' +
+    '<th>Courier নেট</th><th>Net Profit</th></tr></thead><tbody>';
+  var gN = 0, gS = 0, gC = 0, sl = 1;
+  months.forEach(function(m) {
+    var mos = mm[m];
+    var d = new Date(m + '-01');
+    var mn = isNaN(d.getTime()) ? m : d.toLocaleString('default', { month: 'long', year: 'numeric' });
+    html += '<tr class="ptbl-mhead"><td colspan="8">?? ' + mn + ' (' + mos.length + 'টি)</td></tr>';
+    var mN = 0, mS = 0, mC = 0;
+    mos.slice().sort(function(a, b) { return a.id - b.id; }).forEach(function(o) {
+      var n = net(o);
+      var ndc = Number(o.courier_actual || 0) - Number(o.delcharge || 0);
+      mN += n; mS += tsale(o); mC += ndc;
+      html += '<tr>' +
+        '<td style="color:var(--muted)">' + sl + '</td>' +
+        '<td style="font-weight:600">' + o.name + '</td>' +
+        '<td style="color:var(--muted)">' + o.phone + '</td>' +
+        '<td style="font-size:11px">' + (o.tracking || '-') + '</td>' +
+        '<td>' + o.product + ' x' + o.qty + '</td>' +
+        '<td style="color:var(--accent)">' + fmtp(tsale(o)) + '</td>' +
+        '<td style="color:' + (ndc > 0 ? 'var(--red)' : 'var(--green)') + '">' + fmtp(ndc) + '</td>' +
+        '<td style="font-weight:700;color:' + (n >= 0 ? 'var(--green)' : 'var(--red)') + '">' + fmtp(n) + '</td></tr>';
+      sl++;
+    });
+    gN += mN; gS += mS; gC += mC;
+    html += '<tr class="ptbl-msub"><td colspan="5" style="text-align:right">' + mn + ' মোট</td>' +
+      '<td>' + fmtp(mS) + '</td><td>' + fmtp(mC) + '</td><td>' + fmtp(mN) + '</td></tr>';
+  });
+  html += '<tr class="ptbl-total"><td colspan="5" style="text-align:right">সর্বমোট</td>' +
+    '<td>' + fmtp(gS) + '</td><td>' + fmtp(gC) + '</td>' +
+    '<td style="font-size:15px;color:var(--accent)">' + fmtp(gN) + '</td></tr>';
+  document.getElementById('profitContent').innerHTML = html + '</tbody></table></div>';
+}
+
+async function pushProfitCloud() {
+  try {
+    var pdata = buildProfitData();
+    await fetch(SURL2, {
+      method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'save_profit', totalRows: pdata.totalRows, monthRows: pdata.monthRows })
+    });
+  } catch (e) { console.log('profit sync err', e); }
+}
+
+async function exportProfitSheet() {
+  try {
+    var pdata = buildProfitData();
+    var res = await fetch(SURL2, {
+      method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'save_profit', totalRows: pdata.totalRows, monthRows: pdata.monthRows })
+    });
+    if (res.ok) toast('?? Sheet-এ Export হয়েছে ✅', 's');
+    else throw new Error();
+  } catch (e) { toast('Export ব্যর্থ', 'e'); }
+}
+
 </script>
+
+<div class="profit-overlay" id="profitOverlay">
+  <div class="profit-modal">
+    <div class="profit-head">
+      <h2>📈 Net Profit বিশ্লেষণ</h2>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn btn-g" onclick="exportProfitSheet()" style="font-size:12px">📊 Sheet Export</button>
+        <button class="mc" onclick="document.getElementById('profitOverlay').classList.remove('open')">&#215;</button>
+      </div>
+    </div>
+    <div class="ptabs">
+      <button class="ptab active" id="ptab-total" onclick="switchPTab('total')">💰 মোট Profit</button>
+      <button class="ptab" id="ptab-month" onclick="switchPTab('month')">📅 মাসভিত্তিক</button>
+    </div>
+    <div class="profit-body"><div id="profitContent"></div></div>
+  </div>
+</div>
 </body>
 </html>
